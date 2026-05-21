@@ -10,11 +10,11 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <span className="w-1 h-6 bg-accent rounded-full" />
             <span className="font-heading font-bold text-lg uppercase tracking-[0.2em] text-white">
-              CS2 Strats
+              CS2 Utility
             </span>
           </div>
           <span className="hidden sm:block text-xs text-zinc-500 font-body ml-1 uppercase tracking-widest">
-            / Playbook
+            / Portal
           </span>
         </div>
       </header>
@@ -27,7 +27,7 @@ export default function HomePage() {
               Select Map
             </h2>
             <p className="text-sm text-zinc-500 font-body mt-0.5">
-              Choose a map to view utility lineups.
+              Choose a map to view utility.
             </p>
           </div>
           <span className="text-xs font-heading uppercase tracking-widest text-zinc-600 border border-border-dim px-2 py-1 rounded-sm">
@@ -42,10 +42,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Footer note */}
-        <p className="text-center text-xs text-zinc-700 font-body mt-10 uppercase tracking-widest">
-          More maps coming soon
-        </p>
       </div>
     </main>
   );

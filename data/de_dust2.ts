@@ -3,7 +3,7 @@ import type { MapData } from '@/lib/types';
 const dust2: MapData = {
   id: 'de_dust2',
   name: 'Dust II',
-  thumbnail: '/images/maps/de_dust2.jpg',
+  thumbnail: '/images/de-dust2.webp',
   accentColor: '#8b6914',
   available: true,
   overviewImage: '/images/dust2_overview.webp',
@@ -12,13 +12,15 @@ const dust2: MapData = {
     // ── SMOKES ──────────────────────────────────────────────────────────────
     {
       id: 'smoke-long-doors',
-      name: 'Long Doors Smoke',
+      name: 'Long Corner Smoke',
       type: 'smoke',
       side: 'T',
       description: 'Blocks the CT/AWP holding Long Doors. Thrown from T Spawn.',
       from: 'T Spawn',
       to: 'Long Doors',
       videoUrl: 'https://www.youtube.com/shorts/7VSpw_wvrD4',
+      fromCoords: { x: 47, y: 86 },
+      toCoords: { x: 82, y: 46 },
     },
     {
       id: 'smoke-ct-A',
@@ -29,6 +31,8 @@ const dust2: MapData = {
       from: 'Blue Bins (A Long)',
       to: 'CT Spawn - Cross',
       videoUrl: 'https://www.youtube.com/shorts/YV7VRBPTmdc',
+      fromCoords: { x: 75, y: 46 },
+      toCoords: { x: 69, y: 23 },
     },
     {
       id: 'smoke-xbox',
@@ -39,6 +43,8 @@ const dust2: MapData = {
       from: 'T Spawn (right side)',
       to: 'Xbox',
       videoUrl: 'https://www.youtube.com/shorts/feM8aJFU5lw',
+      fromCoords: { x: 48, y: 97 },
+      toCoords: { x: 48, y: 40 },
     },
     {
       id: 'smoke-b-door',
@@ -61,6 +67,8 @@ const dust2: MapData = {
       from: 'Outside B Tunnels',
       to: 'B Window',
       videoUrl: 'https://www.youtube.com/shorts/Mw4CHKzuksk',
+      fromCoords: { x: 25, y: 59 },
+      toCoords: { x: 25, y: 12 },
     },
 
     // ── FLASHES ─────────────────────────────────────────────────────────────

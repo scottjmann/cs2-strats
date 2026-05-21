@@ -43,15 +43,15 @@ function VideoItem({ entry, onViewOnMap }: { entry: UtilityEntry; onViewOnMap?: 
 
   return (
     <div>
-      <button
-        onClick={() => videoId && setExpanded(!expanded)}
-        className={[
-          'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
-          videoId ? 'hover:bg-bg-elevated cursor-pointer' : 'cursor-default',
-        ].join(' ')}
-      >
-        {/* Thumbnail */}
-        <div className="w-24 h-[54px] flex-shrink-0 rounded-sm overflow-hidden bg-bg-elevated">
+      <div className={[
+        'w-full flex items-center gap-3 px-4 py-3',
+        videoId ? 'cursor-pointer hover:bg-bg-elevated' : '',
+      ].join(' ')}>
+        {/* Thumbnail — clicking expands video */}
+        <button
+          onClick={() => videoId && setExpanded(!expanded)}
+          className="w-24 h-[54px] flex-shrink-0 rounded-sm overflow-hidden bg-bg-elevated"
+        >
           {videoId ? (
             <img
               src={getThumbnailUrl(entry.videoUrl)!}
@@ -67,33 +67,39 @@ function VideoItem({ entry, onViewOnMap }: { entry: UtilityEntry; onViewOnMap?: 
               No video
             </div>
           )}
-        </div>
+        </button>
 
-        {/* Text */}
-        <div className="flex-1 min-w-0">
+        {/* Text — clicking expands video */}
+        <button
+          onClick={() => videoId && setExpanded(!expanded)}
+          className="flex-1 min-w-0 text-left"
+        >
           <p className="text-sm font-body text-zinc-200 truncate">{entry.name}</p>
           <p className="text-xs text-zinc-500 font-body">
             {entry.from} → {entry.to}
           </p>
-        </div>
+        </button>
 
-        {videoId && <Chevron open={expanded} className="flex-shrink-0" />}
-      </button>
-
-      {/* View on Map button */}
-      {hasMapPin && (
-        <div className="px-4 pb-3">
-          <button
-            onClick={(e) => { e.stopPropagation(); onViewOnMap!(); }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-sm border border-accent/35 bg-accent/8 hover:bg-accent/18 hover:border-accent/60 text-accent font-heading text-[11px] uppercase tracking-[0.2em] transition-colors"
-          >
-            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            View on Map
-          </button>
+        {/* Right-side controls */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {hasMapPin && (
+            <button
+              onClick={() => onViewOnMap!()}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-accent/30 bg-accent/8 hover:bg-accent/18 hover:border-accent/55 text-accent font-heading text-[10px] uppercase tracking-wider transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Map
+            </button>
+          )}
+          {videoId && (
+            <button onClick={() => setExpanded(!expanded)}>
+              <Chevron open={expanded} />
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {expanded && videoId && (
         <div className="px-4 pb-4">
@@ -171,7 +177,7 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
   if (!map) notFound();
 
   const [side, setSide] = useState<Side | null>(null);
-  const [view, setView] = useState<'list' | 'map'>('list');
+  const [view, setView] = useState<'list' | 'map'>('map');
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
 
   function handleViewOnMap(entryId: string) {
@@ -199,16 +205,19 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
           </div>
         </header>
 
-        <div className="flex flex-1">
+        <div className="flex flex-1 relative">
           {/* CT */}
           <button
             onClick={() => setSide('CT')}
-            className="flex-1 flex flex-col items-center justify-center gap-5 border-r border-border-dim bg-ct/[0.04] hover:bg-ct/[0.10] transition-colors group"
+            className="flex-1 flex flex-col items-center justify-center gap-5 border-r border-border-dim bg-ct/[0.04] hover:bg-ct/[0.10] transition-colors group relative overflow-hidden"
           >
-            <span className="font-heading font-black text-[clamp(72px,12vw,140px)] leading-none text-ct/20 group-hover:text-ct/50 transition-colors select-none">
+            <div className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-40 transition-opacity"
+              style={{ backgroundImage: 'url(/images/Chooseteam_CT.webp)' }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/40 via-transparent to-bg-primary/70" />
+            <span className="relative font-heading font-black text-[clamp(72px,12vw,140px)] leading-none text-ct/40 group-hover:text-ct/70 transition-colors select-none">
               CT
             </span>
-            <span className="font-heading text-sm uppercase tracking-[0.3em] text-zinc-500 group-hover:text-ct transition-colors">
+            <span className="relative font-heading text-sm uppercase tracking-[0.3em] text-zinc-500 group-hover:text-ct transition-colors">
               Counter-Terrorist
             </span>
           </button>
@@ -216,12 +225,15 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
           {/* T */}
           <button
             onClick={() => setSide('T')}
-            className="flex-1 flex flex-col items-center justify-center gap-5 bg-t/[0.04] hover:bg-t/[0.10] transition-colors group"
+            className="flex-1 flex flex-col items-center justify-center gap-5 bg-t/[0.04] hover:bg-t/[0.10] transition-colors group relative overflow-hidden"
           >
-            <span className="font-heading font-black text-[clamp(72px,12vw,140px)] leading-none text-t/20 group-hover:text-t/50 transition-colors select-none">
+            <div className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-40 transition-opacity"
+              style={{ backgroundImage: 'url(/images/Chooseteam_Terror.webp)' }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/40 via-transparent to-bg-primary/70" />
+            <span className="relative font-heading font-black text-[clamp(72px,12vw,140px)] leading-none text-t/40 group-hover:text-t/70 transition-colors select-none">
               T
             </span>
-            <span className="font-heading text-sm uppercase tracking-[0.3em] text-zinc-500 group-hover:text-t transition-colors">
+            <span className="relative font-heading text-sm uppercase tracking-[0.3em] text-zinc-500 group-hover:text-t transition-colors">
               Terrorist
             </span>
           </button>
@@ -312,7 +324,7 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
       </header>
 
       {/* Content */}
-      <div className="relative z-10 max-w-3xl mx-auto px-4 py-6 pb-12">
+      <div className={`relative z-10 px-4 ${view === 'map' ? 'h-[calc(100vh-3.5rem)] py-3 overflow-hidden' : 'py-6 pb-12 max-w-3xl mx-auto'}`}>
         {view === 'list' ? (
           <div className="space-y-2">
             {CATEGORIES.map((cat) => (
