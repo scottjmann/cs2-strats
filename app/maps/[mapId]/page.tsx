@@ -260,7 +260,7 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
         style={{ backgroundImage: `url(${bgImage})` }}
       />
       {/* Gradient overlay — fades render into page background */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-bg-primary/55 via-bg-primary/94 to-bg-primary" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-bg-primary/20 via-bg-primary/70 to-bg-primary" />
       {/* Sticky header */}
       <header className="sticky top-0 z-30 border-b border-border-dim bg-bg-surface/90 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">

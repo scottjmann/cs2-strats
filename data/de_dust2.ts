@@ -59,6 +59,18 @@ const dust2: MapData = {
       toCoords: { x: 27, y: 24 },
     },
     {
+      id: 'smoke-mid-to-b',
+      name: 'CT Spawn - Mid to B Smoke',
+      type: 'smoke',
+      side: 'T',
+      description: 'Smokes B from mid, cutting off CT rotations through B doors.',
+      from: 'Mid (CT Spawn side)',
+      to: 'B Site',
+      videoUrl: 'https://www.youtube.com/shorts/ycvhbDdcbOk',
+      fromCoords: { x: 48, y: 42 },
+      toCoords: { x: 51, y: 22 },
+    },
+    {
       id: 'smoke-b-window',
       name: 'B Window Smoke',
       type: 'smoke',
@@ -69,6 +81,19 @@ const dust2: MapData = {
       videoUrl: 'https://www.youtube.com/shorts/Mw4CHKzuksk',
       fromCoords: { x: 25, y: 59 },
       toCoords: { x: 25, y: 12 },
+    },
+
+    {
+      id: 'smoke-a-short',
+      name: 'A Short Smoke',
+      type: 'smoke',
+      side: 'T',
+      description: 'Smokes A Short, cutting off CTs from peeking while crossing to A site.',
+      from: 'A Long',
+      to: 'A Short',
+      videoUrl: 'https://www.youtube.com/shorts/fS0bZZYVZ1k',
+      fromCoords: { x: 66, y: 36 },
+      toCoords: { x: 66.5, y: 24 },
     },
 
     // ── FLASHES ─────────────────────────────────────────────────────────────
