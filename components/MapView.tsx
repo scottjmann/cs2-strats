@@ -72,8 +72,32 @@ function PinDot({ x, y, type, dimmed, highlighted, onMouseEnter, onMouseLeave, o
 }) {
   const isFrom    = type === 'from';
   const color     = isFrom ? '#f59e0b' : '#ef4444';
-  const glowColor = isFrom ? 'rgba(245,158,11,0.65)' : 'rgba(239,68,68,0.65)';
+  const glowColor = isFrom ? 'rgba(245,158,11,0.65)' : 'rgba(239,68,68,0.55)';
   const spotColor = isFrom ? 'rgba(255,228,140,0.9)' : 'rgba(255,180,180,0.9)';
+
+  // "to" pins are small and hidden until the entry is active
+  if (!isFrom) {
+    return (
+      <div data-pin="true" className="absolute pointer-events-none" style={{
+        left: `${x}%`, top: `${y}%`,
+        transform: `translate(-50%, -50%) scale(${highlighted ? 1.2 : 0.7})`,
+        opacity: highlighted ? 1 : dimmed ? 0.2 : 0.5,
+        transition: 'opacity 0.2s, transform 0.2s',
+        zIndex: highlighted ? 15 : 8,
+      }}>
+        {highlighted && (
+          <div className="absolute rounded-full animate-ping"
+            style={{ inset: '-4px', background: glowColor, borderRadius: '50%' }} />
+        )}
+        <div className="w-3 h-3 rounded-full relative" style={{
+          background: `radial-gradient(circle at 33% 28%, ${spotColor} 0%, ${color} 48%, ${color}bb 100%)`,
+          boxShadow: highlighted ? `0 0 8px 3px ${glowColor}, 0 0 2px 1px ${color}` : 'none',
+          border: `1px solid ${color}${highlighted ? '' : '66'}`,
+        }} />
+      </div>
+    );
+  }
+
   return (
     <div data-pin="true" className="absolute cursor-pointer" style={{
       left: `${x}%`, top: `${y}%`,
@@ -90,7 +114,7 @@ function PinDot({ x, y, type, dimmed, highlighted, onMouseEnter, onMouseLeave, o
         background: `radial-gradient(circle at 33% 28%, ${spotColor} 0%, ${color} 48%, ${color}bb 100%)`,
         boxShadow: highlighted
           ? `0 0 10px 4px ${glowColor}, 0 0 3px 1px ${color}`
-          : `0 0 5px 2px ${glowColor}60`,
+          : 'none',
         border: `1.5px solid ${color}`,
       }}>
         <div className="absolute rounded-full"
@@ -108,7 +132,7 @@ interface IconState {
 export default function MapView({ entries, overviewImage, autoTriggerEntryId, onAutoTriggered }: Props) {
   const [hoveredId, setHoveredId]   = useState<string | null>(null);
   const [activeId, setActiveId]     = useState<string | null>(null);
-  const [showGrid, setShowGrid]     = useState(false);
+  const [showGrid, setShowGrid]     = useState(true);
   const [iconState, setIconState]   = useState<IconState | null>(null);
   const [animTrigger, setAnimTrigger] = useState<{ id: string; nonce: number } | null>(null);
 
@@ -213,6 +237,17 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
     setAnimTrigger(prev => ({ id, nonce: prev?.id === id ? (prev.nonce + 1) : 0 }));
   }
 
+  function handleReset() {
+    if (bloomTimerRef.current) { clearTimeout(bloomTimerRef.current); bloomTimerRef.current = null; }
+    if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
+    setActiveId(null);
+    activeIdRef.current = null;
+    setHoveredId(null);
+    hoveredIdRef.current = null;
+    setAnimTrigger(null);
+    setIconState(null);
+  }
+
   function handleMouseEnter(id: string) {
     setHoveredId(id);
     hoveredIdRef.current = id;
@@ -240,7 +275,7 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
         style={{ height: '100%' }}
         onClick={(e) => {
           const el = e.target as HTMLElement;
-          if (!el.closest('[data-pin]')) { setActiveId(null); activeIdRef.current = null; }
+          if (!el.closest('[data-pin]')) handleReset();
         }}
       >
         <img src={overviewImage} alt="Map overview" className="h-full w-auto block" draggable={false} />
@@ -335,14 +370,14 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
                 style={{
                   left: `${entry.fromCoords!.x}%`,
                   top: `${entry.fromCoords!.y}%`,
-                  transform: entry.fromCoords!.y > 95
+                  transform: entry.fromCoords!.y > 90
                     ? 'translate(calc(-100% - 14px), -50%)'
                     : 'translate(-50%, 14px)',
                   zIndex: 11,
                 }}
                 onMouseEnter={() => handleMouseEnter(entry.id)}
                 onMouseLeave={() => handleMouseLeave()}
-                onClick={() => handleClick(entry.id)}
+                onClick={(e) => { e.stopPropagation(); handleClick(entry.id); }}
               >
                 <span className="font-heading text-[10px] uppercase tracking-wider text-white/80 whitespace-nowrap px-2 py-1 rounded-sm border border-border-dim bg-bg-primary/85">
                   {entry.name}

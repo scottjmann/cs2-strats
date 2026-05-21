@@ -9,13 +9,176 @@
   --font-inter: 'Inter', system-ui, sans-serif;
 }
 
+/* ── Default (original dark) ─────────────────────────────────────────────── */
+:root, [data-theme="default"] {
+  --color-page-bg:      9 11 14;
+  --color-bg-primary:   19 22 31;
+  --color-bg-surface:   27 32 48;
+  --color-bg-elevated:  36 44 64;
+  --color-border-dim:   48 58 82;
+  --color-border-base:  63 77 106;
+  --color-border-bright:245 158 11;
+  --color-accent:       245 158 11;
+  --color-accent-dim:   180 83 9;
+  --color-ct:           59 130 246;
+  --color-t:            239 68 68;
+}
+
+/* ── Edo — deep indigo navy + burnished gold (納戸色 × 卵色) ─────────────── */
+[data-theme="edo"] {
+  --color-page-bg:       6 8 20;
+  --color-bg-primary:   10 12 30;
+  --color-bg-surface:   16 20 48;
+  --color-bg-elevated:  24 30 66;
+  --color-border-dim:   38 46 100;
+  --color-border-base:  58 70 140;
+  --color-border-bright:220 174 72;
+  --color-accent:       220 174 72;
+  --color-accent-dim:   160 120 40;
+  --color-ct:           52 160 200;
+  --color-t:            220 110 50;
+}
+
+/* ── Meiji — rich amber dusk + lacquer red (柿色 × 杏子) ────────────────── */
+[data-theme="meiji"] {
+  --color-page-bg:      14 8 4;
+  --color-bg-primary:   22 14 8;
+  --color-bg-surface:   36 22 10;
+  --color-bg-elevated:  52 32 14;
+  --color-border-dim:   78 50 22;
+  --color-border-base:  110 72 32;
+  --color-border-bright:244 138 40;
+  --color-accent:       244 138 40;
+  --color-accent-dim:   172 88 22;
+  --color-ct:           72 162 124;
+  --color-t:            210 64 36;
+}
+
+/* ── Taisho — moonlit teal + verdigris (水色 × 空色) ────────────────────── */
+[data-theme="taisho"] {
+  --color-page-bg:       4 12 14;
+  --color-bg-primary:    6 18 22;
+  --color-bg-surface:   10 28 34;
+  --color-bg-elevated:  14 40 48;
+  --color-border-dim:   22 64 76;
+  --color-border-base:  34 90 108;
+  --color-border-bright:96 210 200;
+  --color-accent:       96 210 200;
+  --color-accent-dim:   56 148 138;
+  --color-ct:           100 158 220;
+  --color-t:            200 168 90;
+}
+
+/* ── Theme-aware utility overrides ───────────────────────────────────────────
+   These re-declare every colour utility with CSS variable references.
+   @layer utilities runs AFTER Tailwind's compiled utilities, so these win
+   without requiring a Tailwind recompile.                                    */
+@layer utilities {
+  /* Backgrounds */
+  .bg-bg-primary      { background-color: rgb(var(--color-bg-primary) / var(--tw-bg-opacity, 1)); }
+  .bg-bg-surface      { background-color: rgb(var(--color-bg-surface) / var(--tw-bg-opacity, 1)); }
+  .bg-bg-elevated     { background-color: rgb(var(--color-bg-elevated) / var(--tw-bg-opacity, 1)); }
+  .bg-bg-primary\/85  { background-color: rgb(var(--color-bg-primary) / 0.85); }
+  .bg-bg-surface\/80  { background-color: rgb(var(--color-bg-surface) / 0.80); }
+  .bg-bg-surface\/90  { background-color: rgb(var(--color-bg-surface) / 0.90); }
+
+  /* Accent backgrounds */
+  .bg-accent          { background-color: rgb(var(--color-accent) / var(--tw-bg-opacity, 1)); }
+  .bg-accent\/8       { background-color: rgb(var(--color-accent) / 0.08); }
+  .bg-accent\/10      { background-color: rgb(var(--color-accent) / 0.10); }
+  .bg-accent\/18      { background-color: rgb(var(--color-accent) / 0.18); }
+
+  /* CT / T backgrounds */
+  .bg-ct                   { background-color: rgb(var(--color-ct) / var(--tw-bg-opacity, 1)); }
+  .bg-ct\/\[0\.04\]        { background-color: rgb(var(--color-ct) / 0.04); }
+  .bg-ct\/\[0\.10\]        { background-color: rgb(var(--color-ct) / 0.10); }
+  .bg-t                    { background-color: rgb(var(--color-t) / var(--tw-bg-opacity, 1)); }
+  .bg-t\/\[0\.04\]         { background-color: rgb(var(--color-t) / 0.04); }
+  .bg-t\/\[0\.10\]         { background-color: rgb(var(--color-t) / 0.10); }
+
+  /* Text */
+  .text-accent        { color: rgb(var(--color-accent) / var(--tw-text-opacity, 1)); }
+  .text-border-dim    { color: rgb(var(--color-border-dim) / var(--tw-text-opacity, 1)); }
+  .text-ct            { color: rgb(var(--color-ct) / var(--tw-text-opacity, 1)); }
+  .text-ct\/40        { color: rgb(var(--color-ct) / 0.40); }
+  .text-t             { color: rgb(var(--color-t) / var(--tw-text-opacity, 1)); }
+  .text-t\/40         { color: rgb(var(--color-t) / 0.40); }
+  .text-t\/70         { color: rgb(var(--color-t) / 0.70); }
+
+  /* Borders */
+  .border-border-dim    { border-color: rgb(var(--color-border-dim)    / var(--tw-border-opacity, 1)); }
+  .border-border-bright { border-color: rgb(var(--color-border-bright) / var(--tw-border-opacity, 1)); }
+  .border-accent        { border-color: rgb(var(--color-accent) / var(--tw-border-opacity, 1)); }
+  .border-accent\/30    { border-color: rgb(var(--color-accent) / 0.30); }
+  .border-accent\/35    { border-color: rgb(var(--color-accent) / 0.35); }
+  .border-accent\/50    { border-color: rgb(var(--color-accent) / 0.50); }
+  .border-accent\/55    { border-color: rgb(var(--color-accent) / 0.55); }
+  .border-accent\/60    { border-color: rgb(var(--color-accent) / 0.60); }
+
+  /* Ring */
+  .ring-accent\/40 { --tw-ring-color: rgb(var(--color-accent) / 0.40); }
+
+  /* Gradient from/via/to */
+  .from-bg-primary\/40 {
+    --tw-gradient-from: rgb(var(--color-bg-primary) / 0.40) var(--tw-gradient-from-position);
+    --tw-gradient-to: rgb(var(--color-bg-primary) / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .from-bg-primary\/55 {
+    --tw-gradient-from: rgb(var(--color-bg-primary) / 0.55) var(--tw-gradient-from-position);
+    --tw-gradient-to: rgb(var(--color-bg-primary) / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .via-bg-primary\/94 {
+    --tw-gradient-to: rgb(var(--color-bg-primary) / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--color-bg-primary) / 0.94) var(--tw-gradient-via-position), var(--tw-gradient-to);
+  }
+  .to-bg-primary {
+    --tw-gradient-to: rgb(var(--color-bg-primary) / 1) var(--tw-gradient-to-position);
+  }
+  .to-bg-primary\/70 {
+    --tw-gradient-to: rgb(var(--color-bg-primary) / 0.70) var(--tw-gradient-to-position);
+  }
+  .to-t {
+    --tw-gradient-to: rgb(var(--color-t) / 1) var(--tw-gradient-to-position);
+  }
+
+  /* Hover variants */
+  .hover\:bg-ct\/\[0\.10\]:hover { background-color: rgb(var(--color-ct) / 0.10); }
+  .hover\:bg-t\/\[0\.10\]:hover  { background-color: rgb(var(--color-t)  / 0.10); }
+  .hover\:text-ct:hover          { color: rgb(var(--color-ct) / 1); }
+  .hover\:text-t:hover           { color: rgb(var(--color-t)  / 1); }
+  .hover\:border-accent:hover    { border-color: rgb(var(--color-accent) / 1); }
+  .hover\:text-accent:hover      { color: rgb(var(--color-accent) / 1); }
+  .hover\:bg-accent\/18:hover    { background-color: rgb(var(--color-accent) / 0.18); }
+  .hover\:border-accent\/55:hover { border-color: rgb(var(--color-accent) / 0.55); }
+  .hover\:border-accent\/60:hover { border-color: rgb(var(--color-accent) / 0.60); }
+
+  /* Accent pill / active state */
+  .bg-accent.text-white          { background-color: rgb(var(--color-accent) / 1); }
+
+  /* CT text opacity variants */
+  .text-ct\/20  { color: rgb(var(--color-ct) / 0.20); }
+  .text-ct\/50  { color: rgb(var(--color-ct) / 0.50); }
+  .text-t\/20   { color: rgb(var(--color-t) / 0.20); }
+  .text-t\/50   { color: rgb(var(--color-t) / 0.50); }
+
+  /* Group hover variants for side picker */
+  .group:hover .group-hover\:text-ct { color: rgb(var(--color-ct) / 1); }
+  .group:hover .group-hover\:text-t  { color: rgb(var(--color-t)  / 1); }
+  .group:hover .group-hover\:text-ct\/50 { color: rgb(var(--color-ct) / 0.50); }
+  .group:hover .group-hover\:text-t\/50  { color: rgb(var(--color-t)  / 0.50); }
+  .group:hover .group-hover\:text-ct\/70 { color: rgb(var(--color-ct) / 0.70); }
+  .group:hover .group-hover\:text-t\/70  { color: rgb(var(--color-t)  / 0.70); }
+}
+
 * {
   box-sizing: border-box;
 }
 
 html,
 body {
-  background-color: #090b0e;
+  background-color: rgb(var(--color-page-bg));
   color: #e2e5ec;
   scroll-behavior: smooth;
 }

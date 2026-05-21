@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { Side, UtilityType, UtilityEntry } from '@/lib/types';
 import { getVideoId, getThumbnailUrl, getFallbackThumbnailUrl } from '@/lib/youtube';
 import MapView from '@/components/MapView';
+import { ThemeChooser } from '@/components/ThemeChooser';
 
 import dust2 from '@/data/de_dust2';
 
@@ -189,7 +190,7 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
   if (!side) {
     return (
       <div className="flex flex-col min-h-screen bg-bg-primary">
-        <header className="border-b border-border-dim bg-bg-surface/80 backdrop-blur-sm">
+        <header className="relative z-30 border-b border-border-dim bg-bg-surface/80 backdrop-blur-sm">
           <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
             <Link
               href="/"
@@ -202,25 +203,28 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
             <span className="font-heading font-bold text-sm uppercase tracking-[0.2em] text-white">
               {map.name}
             </span>
+            <div className="ml-auto"><ThemeChooser /></div>
           </div>
         </header>
 
         <div className="flex flex-1 relative">
-          {/* CT */}
-          <button
-            onClick={() => setSide('CT')}
-            className="flex-1 flex flex-col items-center justify-center gap-5 border-r border-border-dim bg-ct/[0.04] hover:bg-ct/[0.10] transition-colors group relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-40 transition-opacity"
+          {/* CT — coming soon */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-5 border-r border-border-dim relative overflow-hidden opacity-40 cursor-not-allowed">
+            <div className="absolute inset-0 bg-cover bg-center opacity-25"
               style={{ backgroundImage: 'url(/images/Chooseteam_CT.webp)' }} />
             <div className="absolute inset-0 bg-gradient-to-b from-bg-primary/40 via-transparent to-bg-primary/70" />
-            <span className="relative font-heading font-black text-[clamp(72px,12vw,140px)] leading-none text-ct/40 group-hover:text-ct/70 transition-colors select-none">
+            <span className="relative font-heading font-black text-[clamp(72px,12vw,140px)] leading-none text-ct/40 select-none">
               CT
             </span>
-            <span className="relative font-heading text-sm uppercase tracking-[0.3em] text-zinc-500 group-hover:text-ct transition-colors">
-              Counter-Terrorist
-            </span>
-          </button>
+            <div className="relative flex flex-col items-center gap-1.5">
+              <span className="font-heading text-sm uppercase tracking-[0.3em] text-zinc-500">
+                Counter-Terrorist
+              </span>
+              <span className="font-heading text-xs uppercase tracking-widest text-zinc-600 border border-border-dim px-2 py-0.5 rounded-sm">
+                Coming Soon
+              </span>
+            </div>
+          </div>
 
           {/* T */}
           <button
@@ -274,6 +278,8 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
           >
             {map.name}
           </button>
+
+          <ThemeChooser />
 
           {/* View toggle */}
           <div className="ml-auto flex rounded-sm overflow-hidden border border-border-dim">

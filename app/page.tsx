@@ -1,5 +1,6 @@
 import { MAPS } from '@/data/maps';
 import MapTile from '@/components/MapTile';
+import { ThemeChooser } from '@/components/ThemeChooser';
 
 export default function HomePage() {
   return (
@@ -13,9 +14,9 @@ export default function HomePage() {
               CS2 Utility
             </span>
           </div>
-          <span className="hidden sm:block text-xs text-zinc-500 font-body ml-1 uppercase tracking-widest">
-            / Portal
-          </span>
+          <div className="ml-auto">
+            <ThemeChooser />
+          </div>
         </div>
       </header>
 
@@ -30,9 +31,6 @@ export default function HomePage() {
               Choose a map to view utility.
             </p>
           </div>
-          <span className="text-xs font-heading uppercase tracking-widest text-zinc-600 border border-border-dim px-2 py-1 rounded-sm">
-            Active Duty
-          </span>
         </div>
 
         {/* Map grid */}
