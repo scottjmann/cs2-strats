@@ -3,8 +3,7 @@
 import { use, useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import type { Side, UtilityType, UtilityEntry } from '@/lib/types';
-import { getVideoId, getThumbnailUrl, getFallbackThumbnailUrl } from '@/lib/youtube';
+import type { Side, UtilityEntry } from '@/lib/types';
 import MapView from '@/components/MapView';
 import { ThemeChooser } from '@/components/ThemeChooser';
 import { AdminLogin, clearAdminSession } from '@/components/AdminLogin';
@@ -16,163 +15,6 @@ import dust2 from '@/data/de_dust2';
 
 const MAP_DATA = { de_dust2: dust2 } as const;
 
-const CATEGORIES: { type: UtilityType; label: string; color: string }[] = [
-  { type: 'smoke',   label: 'Smokes',      color: 'text-smoke'   },
-  { type: 'flash',   label: 'Flashes',     color: 'text-flash'   },
-  { type: 'molotov', label: 'Molotovs',    color: 'text-molotov' },
-  { type: 'he',      label: 'HE Grenades', color: 'text-he'      },
-];
-
-// ── Chevron ──────────────────────────────────────────────────────────────────
-
-function Chevron({ open, className = '' }: { open: boolean; className?: string }) {
-  return (
-    <svg
-      className={`w-4 h-4 text-zinc-500 transition-transform ${open ? 'rotate-180' : ''} ${className}`}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      viewBox="0 0 24 24"
-    >
-      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-// ── Video item ────────────────────────────────────────────────────────────────
-
-function VideoItem({ entry, onViewOnMap }: { entry: UtilityEntry; onViewOnMap?: () => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const videoId = getVideoId(entry.videoUrl);
-  const hasMapPin = !!(entry.fromCoords && entry.toCoords && onViewOnMap);
-
-  return (
-    <div>
-      <div className={[
-        'w-full flex items-center gap-3 px-4 py-3',
-        videoId ? 'cursor-pointer hover:bg-bg-elevated' : '',
-      ].join(' ')}>
-        {/* Thumbnail — clicking expands video */}
-        <button
-          onClick={() => videoId && setExpanded(!expanded)}
-          className="w-24 h-[54px] flex-shrink-0 rounded-sm overflow-hidden bg-bg-elevated"
-        >
-          {videoId ? (
-            <img
-              src={getThumbnailUrl(entry.videoUrl)!}
-              alt={entry.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const fb = getFallbackThumbnailUrl(entry.videoUrl);
-                if (fb) e.currentTarget.src = fb;
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-zinc-700 text-[10px] font-heading uppercase tracking-wider">
-              No video
-            </div>
-          )}
-        </button>
-
-        {/* Text — clicking expands video */}
-        <button
-          onClick={() => videoId && setExpanded(!expanded)}
-          className="flex-1 min-w-0 text-left"
-        >
-          <p className="text-sm font-body text-zinc-200 truncate">{entry.name}</p>
-          <p className="text-xs text-zinc-500 font-body">
-            {entry.from} → {entry.to}
-          </p>
-        </button>
-
-        {/* Right-side controls */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {hasMapPin && (
-            <button
-              onClick={() => onViewOnMap!()}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-accent/30 bg-accent/8 hover:bg-accent/18 hover:border-accent/55 text-accent font-heading text-[10px] uppercase tracking-wider transition-colors"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Map
-            </button>
-          )}
-          {videoId && (
-            <button onClick={() => setExpanded(!expanded)}>
-              <Chevron open={expanded} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {expanded && videoId && (
-        <div className="px-4 pb-4">
-          <div className="aspect-video rounded-sm overflow-hidden">
-            <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-              className="w-full h-full"
-              allowFullScreen
-              allow="autoplay; encrypted-media"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Accordion ────────────────────────────────────────────────────────────────
-
-function UtilityAccordion({
-  label,
-  color,
-  entries,
-  onViewOnMap,
-}: {
-  label: string;
-  color: string;
-  entries: UtilityEntry[];
-  onViewOnMap: (entryId: string) => void;
-}) {
-  const [open, setOpen] = useState(true);
-
-  return (
-    <div className="border border-border-dim rounded-sm overflow-hidden bg-bg-primary/85">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-bg-surface hover:bg-bg-elevated transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <span className={`font-heading font-bold uppercase tracking-[0.15em] text-sm ${color}`}>
-            {label}
-          </span>
-          <span className="text-zinc-600 text-xs">{entries.length}</span>
-        </div>
-        <Chevron open={open} />
-      </button>
-
-      {open && (
-        <div className="divide-y divide-border-dim">
-          {entries.length === 0 ? (
-            <p className="px-4 py-6 text-center text-zinc-600 text-sm font-body">
-              No lineups added yet.
-            </p>
-          ) : (
-            entries.map((entry) => (
-              <VideoItem
-                key={entry.id}
-                entry={entry}
-                onViewOnMap={entry.fromCoords && entry.toCoords ? () => onViewOnMap(entry.id) : undefined}
-              />
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MapPage({ params }: { params: Promise<{ mapId: string }> }) {
@@ -181,28 +23,22 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
 
   if (!map) notFound();
 
-  const [side, setSide]           = useState<Side | null>(null);
-  const [view, setView]           = useState<'list' | 'map'>('map');
-  const [mapFocusId, setMapFocusId] = useState<string | null>(null);
+  const [side, setSide]               = useState<Side | null>(null);
+  const [mapFocusId, setMapFocusId]   = useState<string | null>(null);
 
   // Admin state
-  const [isAdmin, setIsAdmin]       = useState(false);
-  const [showLogin, setShowLogin]   = useState(false);
+  const [isAdmin, setIsAdmin]         = useState(false);
+  const [showLogin, setShowLogin]     = useState(false);
   const [mapActiveId, setMapActiveId] = useState<string | null>(null);
-  const [pickMode, setPickMode]     = useState<PickMode>(null);
-  const [pickedFrom, setPickedFrom] = useState<{ x: number; y: number } | null>(null);
-  const [pickedTo, setPickedTo]     = useState<{ x: number; y: number } | null>(null);
-  const [dbEntries, setDbEntries]   = useState<UtilityEntry[]>([]);
+  const [pickMode, setPickMode]       = useState<PickMode>(null);
+  const [pickedFrom, setPickedFrom]   = useState<{ x: number; y: number } | null>(null);
+  const [pickedTo, setPickedTo]       = useState<{ x: number; y: number } | null>(null);
+  const [dbEntries, setDbEntries]     = useState<UtilityEntry[]>([]);
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem('cs2-admin-token') === 'cs2-admin-session');
     fetchMapEntries(mapId).then(setDbEntries);
   }, [mapId]);
-
-  function handleViewOnMap(entryId: string) {
-    setMapFocusId(entryId);
-    setView('map');
-  }
 
   function handleInitCoords(from: { x: number; y: number } | null, to: { x: number; y: number } | null) {
     setPickedFrom(from);
@@ -274,7 +110,7 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
     );
   }
 
-  // ── Utility view ───────────────────────────────────────────────────────────
+  // ── Map view ───────────────────────────────────────────────────────────────
   // DB entries take precedence — allows editing hardcoded entries via admin
   const dbIds = new Set(dbEntries.map(e => e.id));
   const allEntries = [...map.utility.filter(e => !dbIds.has(e.id)), ...dbEntries];
@@ -290,17 +126,15 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
           onClose={() => setShowLogin(false)}
         />
       )}
-      {/* Character render background */}
       <div
         key={bgImage}
         className="pointer-events-none fixed inset-0 z-0 bg-cover bg-top animate-fade-in"
         style={{ backgroundImage: `url(${bgImage})` }}
       />
-      {/* Gradient overlay — fades render into page background */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-bg-primary/20 via-bg-primary/70 to-bg-primary" />
-      {/* Sticky header */}
+
       <header className="sticky top-0 z-30 border-b border-border-dim bg-bg-surface/90 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="px-4 h-14 flex items-center gap-3">
           <Link
             href="/"
             className="text-zinc-400 hover:text-white transition-colors text-xs font-heading uppercase tracking-widest flex items-center gap-1.5"
@@ -318,31 +152,8 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
 
           <ThemeChooser />
 
-          {/* View toggle */}
-          <div className="ml-auto flex rounded-sm overflow-hidden border border-border-dim">
-            <button
-              onClick={() => setView('list')}
-              className={[
-                'px-3 py-1.5 text-xs font-heading font-bold uppercase tracking-wider transition-colors',
-                view === 'list' ? 'bg-accent text-white' : 'text-zinc-400 hover:text-accent',
-              ].join(' ')}
-            >
-              List
-            </button>
-            <div className="w-px bg-border-dim" />
-            <button
-              onClick={() => setView('map')}
-              className={[
-                'px-3 py-1.5 text-xs font-heading font-bold uppercase tracking-wider transition-colors',
-                view === 'map' ? 'bg-accent text-white' : 'text-zinc-400 hover:text-accent',
-              ].join(' ')}
-            >
-              Map
-            </button>
-          </div>
-
           {/* Side toggle */}
-          <div className="flex rounded-sm overflow-hidden border border-border-dim">
+          <div className="ml-auto flex rounded-sm overflow-hidden border border-border-dim">
             <button
               onClick={() => setSide('CT')}
               className={[
@@ -387,52 +198,39 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
         </div>
       </header>
 
-      {/* Content */}
-      <div className={`relative z-10 px-4 ${view === 'map' ? 'h-[calc(100vh-3.5rem)] py-3 overflow-x-auto overflow-y-hidden' : 'py-6 pb-12 max-w-3xl mx-auto'}`}>
-        {view === 'list' ? (
-          <div className="space-y-2">
-            {CATEGORIES.map((cat) => (
-              <UtilityAccordion
-                key={cat.type}
-                label={cat.label}
-                color={cat.color}
-                entries={utility.filter((u) => u.type === cat.type)}
-                onViewOnMap={handleViewOnMap}
-              />
-            ))}
-          </div>
-        ) : (
-          <MapView
-            entries={utility}
-            overviewImage={map.overviewImage ?? ''}
-            autoTriggerEntryId={mapFocusId}
-            onAutoTriggered={() => setMapFocusId(null)}
-
-            pickMode={pickMode}
-            onCoordPicked={(coords) => {
-              if (pickMode === 'from') { setPickedFrom(coords); setPickMode(null); }
-              else if (pickMode === 'to') { setPickedTo(coords); setPickMode(null); }
-            }}
-            pickedFrom={pickedFrom}
-            pickedTo={pickedTo}
-            onActiveChange={setMapActiveId}
-            adminPanel={isAdmin && side ? (
-              <AdminPanel
-                entries={utility}
-                mapId={mapId}
-                side={side}
-                pickMode={pickMode}
-                pickedFrom={pickedFrom}
-                pickedTo={pickedTo}
-                onSetPickMode={setPickMode}
-                onInitCoords={handleInitCoords}
-                onSaved={handleSaved}
-                onTriggerMap={setMapFocusId}
-                activeEntryId={mapActiveId}
-              />
-            ) : undefined}
-          />
-        )}
+      <div className="relative z-10 px-4 h-[calc(100vh-3.5rem)] py-3 overflow-x-auto overflow-y-hidden">
+        <div className="w-fit mx-auto h-full">
+        <MapView
+          entries={utility}
+          overviewImage={map.overviewImage ?? ''}
+          autoTriggerEntryId={mapFocusId}
+          onAutoTriggered={() => setMapFocusId(null)}
+          pickMode={pickMode}
+          onCoordPicked={(coords) => {
+            if (pickMode === 'from') { setPickedFrom(coords); setPickMode(null); }
+            else if (pickMode === 'to') { setPickedTo(coords); setPickMode(null); }
+          }}
+          pickedFrom={pickedFrom}
+          pickedTo={pickedTo}
+          onActiveChange={setMapActiveId}
+          adminPanel={
+            <AdminPanel
+              entries={utility}
+              mapId={mapId}
+              side={side}
+              pickMode={pickMode}
+              pickedFrom={pickedFrom}
+              pickedTo={pickedTo}
+              onSetPickMode={setPickMode}
+              onInitCoords={handleInitCoords}
+              onSaved={handleSaved}
+              onTriggerMap={setMapFocusId}
+              activeEntryId={mapActiveId}
+              isAdmin={isAdmin}
+            />
+          }
+        />
+        </div>
       </div>
     </div>
   );

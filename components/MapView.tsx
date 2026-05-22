@@ -363,11 +363,11 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
             <button
               key={type}
               onClick={() => toggleFilter(type)}
-              className="px-2.5 py-1.5 rounded-sm font-heading text-[10px] uppercase tracking-wider transition-all"
+              className="px-4 py-3 rounded-sm font-heading text-xs uppercase tracking-wider transition-all w-full text-center"
               style={{
-                border: `1px solid ${color}${isActive ? '80' : '25'}`,
-                background: isActive ? `${color}18` : 'transparent',
-                color: isActive ? color : `${color}40`,
+                border: `1px solid ${color}${isActive ? '80' : '30'}`,
+                background: isActive ? `${color}22` : `${color}08`,
+                color: isActive ? color : `${color}50`,
               }}
             >
               {TYPE_LABELS[type] ?? type}
@@ -498,7 +498,14 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
                 onMouseLeave={() => handleMouseLeave()}
                 onClick={(e) => { e.stopPropagation(); handleClick(entry.id); }}
               >
-                <span className="font-heading text-[10px] uppercase tracking-wider text-white/80 whitespace-nowrap px-2 py-1 rounded-sm border border-border-dim bg-bg-primary/85">
+                <span
+                  className="font-heading text-[10px] uppercase tracking-wider whitespace-nowrap px-2 py-1 rounded-sm border"
+                  style={{
+                    borderColor: `${PIN_COLORS[entry.type]?.color ?? '#f59e0b'}99`,
+                    background: `linear-gradient(${PIN_COLORS[entry.type]?.color ?? '#f59e0b'}38, ${PIN_COLORS[entry.type]?.color ?? '#f59e0b'}38), rgba(10,10,14,0.88)`,
+                    color: PIN_COLORS[entry.type]?.color ?? '#f59e0b',
+                  }}
+                >
                   {entry.name}
                 </span>
               </div>

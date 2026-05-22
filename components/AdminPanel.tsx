@@ -31,11 +31,12 @@ interface Props {
   onSaved: () => void;
   onTriggerMap: (entryId: string) => void;
   activeEntryId?: string | null;
+  isAdmin?: boolean;
 }
 
 export function AdminPanel({
   entries, mapId, side, pickMode, pickedFrom, pickedTo,
-  onSetPickMode, onInitCoords, onSaved, onTriggerMap, activeEntryId,
+  onSetPickMode, onInitCoords, onSaved, onTriggerMap, activeEntryId, isAdmin,
 }: Props) {
   const [mode, setMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingEntry, setEditingEntry] = useState<UtilityEntry | null>(null);
@@ -49,11 +50,13 @@ export function AdminPanel({
   }, [activeEntryId, mode]);
 
   function handleAdd() {
+    if (!isAdmin) return;
     onInitCoords(null, null);
     setMode('add');
   }
 
   function handleEdit(entry: UtilityEntry) {
+    if (!isAdmin) return;
     onInitCoords(entry.fromCoords ?? null, entry.toCoords ?? null);
     onTriggerMap(entry.id);
     setEditingEntry(entry);
@@ -98,13 +101,17 @@ export function AdminPanel({
 
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-border-dim bg-bg-surface flex items-center justify-between flex-shrink-0">
-        <span className="font-heading font-bold text-xs uppercase tracking-wider text-accent">Admin</span>
-        <button
-          onClick={handleAdd}
-          className="px-2.5 py-1 text-[10px] font-heading font-bold uppercase tracking-wider rounded-sm border border-accent/40 text-accent hover:border-accent hover:bg-accent/10 transition-colors"
-        >
-          + Add New
-        </button>
+        <span className="font-heading font-bold text-xs uppercase tracking-wider text-accent">
+          {isAdmin ? 'Admin' : 'Utility'}
+        </span>
+        {isAdmin && (
+          <button
+            onClick={handleAdd}
+            className="px-2.5 py-1 text-[10px] font-heading font-bold uppercase tracking-wider rounded-sm border border-accent/40 text-accent hover:border-accent hover:bg-accent/10 transition-colors"
+          >
+            + Add New
+          </button>
+        )}
       </div>
 
       {/* Entry list */}
@@ -141,12 +148,14 @@ export function AdminPanel({
                         {entry.from} → {entry.to}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
-                      className="ml-2 flex-shrink-0 px-2 py-0.5 text-[10px] font-heading uppercase tracking-wider text-zinc-500 hover:text-accent border border-transparent hover:border-accent/30 rounded-sm transition-colors"
-                    >
-                      Edit
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
+                        className="ml-2 flex-shrink-0 px-2 py-0.5 text-[10px] font-heading uppercase tracking-wider text-zinc-500 hover:text-accent border border-transparent hover:border-accent/30 rounded-sm transition-colors"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
                 );
               })}
