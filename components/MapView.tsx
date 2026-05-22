@@ -70,12 +70,12 @@ function getFlashStyle(landElapsed: number) {
 
 // ── Fire rings ────────────────────────────────────────────────────────────────
 const FIRE_RINGS = [
-  { size: 58, stagger:   0, dx:   0, dy:   0, core: true  },
-  { size: 64, stagger:  55, dx:   3, dy:   2, core: false },
-  { size: 47, stagger: 110, dx: -11, dy:   6, core: false },
-  { size: 53, stagger: 200, dx:   9, dy:  -5, core: false },
-  { size: 40, stagger: 310, dx:  -6, dy:  -8, core: false },
-  { size: 35, stagger: 180, dx:   7, dy:   9, core: false },
+  { size: 67, stagger:   0, dx:   0, dy:   0, core: true  },
+  { size: 74, stagger:  55, dx:   3, dy:   2, core: false },
+  { size: 54, stagger: 110, dx: -11, dy:   6, core: false },
+  { size: 61, stagger: 200, dx:   9, dy:  -5, core: false },
+  { size: 46, stagger: 310, dx:  -6, dy:  -8, core: false },
+  { size: 40, stagger: 180, dx:   7, dy:   9, core: false },
 ];
 
 // Same shape as getRingStyle but fire starts immediately on landing (no BOUNCE_TOTAL offset)
@@ -355,25 +355,37 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
     <div className="flex gap-3 items-start h-full">
 
       {/* ── Filter panel ── */}
-      <div className="flex-shrink-0 flex flex-col justify-center gap-1.5 h-full">
-        {availableTypes.map(type => {
-          const { color } = PIN_COLORS[type] ?? PIN_COLORS.smoke;
-          const isActive = activeFilters.has(type);
-          return (
-            <button
-              key={type}
-              onClick={() => toggleFilter(type)}
-              className="px-4 py-3 rounded-sm font-heading text-xs uppercase tracking-wider transition-all w-full text-center"
-              style={{
-                border: `1px solid ${color}${isActive ? '80' : '30'}`,
-                background: isActive ? `${color}22` : `${color}08`,
-                color: isActive ? color : `${color}50`,
-              }}
-            >
-              {TYPE_LABELS[type] ?? type}
-            </button>
-          );
-        })}
+      <div className="flex-shrink-0 flex flex-col justify-center h-full">
+        <div className="rounded-sm border border-border-dim overflow-hidden bg-bg-primary/85">
+          <div className="px-3 py-2 border-b border-border-dim bg-bg-surface">
+            <p className="font-heading text-[10px] uppercase tracking-wider text-zinc-400">Utility</p>
+          </div>
+          <div className="px-3 py-2.5 border-b border-border-dim">
+            <p className="text-[10px] text-zinc-500 font-body leading-relaxed">
+              Click a pin to watch<br />the lineup video
+            </p>
+          </div>
+          <div className="p-2 flex flex-col gap-1.5">
+            {availableTypes.map(type => {
+              const { color } = PIN_COLORS[type] ?? PIN_COLORS.smoke;
+              const isActive = activeFilters.has(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleFilter(type)}
+                  className="px-4 py-3 rounded-sm font-heading text-xs uppercase tracking-wider transition-all w-full text-center"
+                  style={{
+                    border: `1px solid ${color}${isActive ? '80' : '30'}`,
+                    background: isActive ? `${color}22` : `${color}08`,
+                    color: isActive ? color : `${color}50`,
+                  }}
+                >
+                  {TYPE_LABELS[type] ?? type}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* ── Map column — height-driven so no scrolling ── */}
@@ -468,7 +480,33 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
           />
         )}
 
-        {/* Pins */}
+        {/* Inactive pins — faded, click to enable that type */}
+        {pinEntries.filter(e => !activeFilters.has(e.type)).map(entry => {
+          const { color } = PIN_COLORS[entry.type] ?? PIN_COLORS.smoke;
+          return (
+            <div
+              key={`inactive-${entry.id}`}
+              data-pin="true"
+              className="absolute cursor-pointer"
+              title={`Click to show ${TYPE_LABELS[entry.type] ?? entry.type}`}
+              style={{
+                left: `${entry.fromCoords!.x}%`, top: `${entry.fromCoords!.y}%`,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 8, opacity: 0.22, transition: 'opacity 0.15s',
+              }}
+              onClick={(e) => { e.stopPropagation(); toggleFilter(entry.type); handleClick(entry.id); }}
+            >
+              <div className="w-4 h-4 rounded-full relative" style={{
+                background: `radial-gradient(circle at 33% 28%, rgba(255,255,255,0.9) 0%, ${color} 48%, ${color}bb 100%)`,
+                border: `1.5px solid ${color}`,
+              }}>
+                <div className="absolute rounded-full" style={{ width: '32%', height: '32%', top: '14%', left: '16%', background: 'rgba(255,255,255,0.72)' }} />
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Active pins */}
         {filteredPinEntries.map(entry => {
           const animId = animTrigger?.id;
           const isDimmed = (hoveredId !== null && hoveredId !== entry.id) ||
