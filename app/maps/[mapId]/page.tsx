@@ -1,12 +1,16 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Side, UtilityType, UtilityEntry } from '@/lib/types';
 import { getVideoId, getThumbnailUrl, getFallbackThumbnailUrl } from '@/lib/youtube';
 import MapView from '@/components/MapView';
 import { ThemeChooser } from '@/components/ThemeChooser';
+import { AdminLogin, clearAdminSession } from '@/components/AdminLogin';
+import { AdminPanel } from '@/components/AdminPanel';
+import type { PickMode } from '@/components/AdminEntryForm';
+import { fetchMapEntries } from '@/lib/supabase';
 
 import dust2 from '@/data/de_dust2';
 
@@ -177,13 +181,37 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
 
   if (!map) notFound();
 
-  const [side, setSide] = useState<Side | null>(null);
-  const [view, setView] = useState<'list' | 'map'>('map');
+  const [side, setSide]           = useState<Side | null>(null);
+  const [view, setView]           = useState<'list' | 'map'>('map');
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
+
+  // Admin state
+  const [isAdmin, setIsAdmin]       = useState(false);
+  const [showLogin, setShowLogin]   = useState(false);
+  const [mapActiveId, setMapActiveId] = useState<string | null>(null);
+  const [pickMode, setPickMode]     = useState<PickMode>(null);
+  const [pickedFrom, setPickedFrom] = useState<{ x: number; y: number } | null>(null);
+  const [pickedTo, setPickedTo]     = useState<{ x: number; y: number } | null>(null);
+  const [dbEntries, setDbEntries]   = useState<UtilityEntry[]>([]);
+
+  useEffect(() => {
+    setIsAdmin(localStorage.getItem('cs2-admin-token') === 'cs2-admin-session');
+    fetchMapEntries(mapId).then(setDbEntries);
+  }, [mapId]);
 
   function handleViewOnMap(entryId: string) {
     setMapFocusId(entryId);
     setView('map');
+  }
+
+  function handleInitCoords(from: { x: number; y: number } | null, to: { x: number; y: number } | null) {
+    setPickedFrom(from);
+    setPickedTo(to);
+    setPickMode(null);
+  }
+
+  function handleSaved() {
+    fetchMapEntries(mapId).then(setDbEntries);
   }
 
   // ── Side picker ────────────────────────────────────────────────────────────
@@ -247,12 +275,21 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
   }
 
   // ── Utility view ───────────────────────────────────────────────────────────
-  const utility = map.utility.filter((u) => u.side === side);
+  // DB entries take precedence — allows editing hardcoded entries via admin
+  const dbIds = new Set(dbEntries.map(e => e.id));
+  const allEntries = [...map.utility.filter(e => !dbIds.has(e.id)), ...dbEntries];
+  const utility = allEntries.filter((u) => u.side === side);
 
   const bgImage = side === 'CT' ? '/images/CT-full.webp' : '/images/T-full.webp';
 
   return (
     <div className="relative min-h-screen bg-bg-primary">
+      {showLogin && (
+        <AdminLogin
+          onLogin={() => { setIsAdmin(true); setShowLogin(false); }}
+          onClose={() => setShowLogin(false)}
+        />
+      )}
       {/* Character render background */}
       <div
         key={bgImage}
@@ -326,11 +363,32 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
               T
             </button>
           </div>
+
+          {/* Admin controls */}
+          {isAdmin ? (
+            <button
+              onClick={() => { clearAdminSession(); setIsAdmin(false); setPickMode(null); setPickedFrom(null); setPickedTo(null); }}
+              className="text-zinc-600 hover:text-zinc-400 transition-colors text-[10px] font-heading uppercase tracking-wider"
+            >
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowLogin(true)}
+              className="text-zinc-500 hover:text-zinc-200 transition-colors"
+              title="Admin login"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+              </svg>
+            </button>
+          )}
         </div>
       </header>
 
       {/* Content */}
-      <div className={`relative z-10 px-4 ${view === 'map' ? 'h-[calc(100vh-3.5rem)] py-3 overflow-hidden' : 'py-6 pb-12 max-w-3xl mx-auto'}`}>
+      <div className={`relative z-10 px-4 ${view === 'map' ? 'h-[calc(100vh-3.5rem)] py-3 overflow-x-auto overflow-y-hidden' : 'py-6 pb-12 max-w-3xl mx-auto'}`}>
         {view === 'list' ? (
           <div className="space-y-2">
             {CATEGORIES.map((cat) => (
@@ -349,6 +407,30 @@ export default function MapPage({ params }: { params: Promise<{ mapId: string }>
             overviewImage={map.overviewImage ?? ''}
             autoTriggerEntryId={mapFocusId}
             onAutoTriggered={() => setMapFocusId(null)}
+
+            pickMode={pickMode}
+            onCoordPicked={(coords) => {
+              if (pickMode === 'from') { setPickedFrom(coords); setPickMode(null); }
+              else if (pickMode === 'to') { setPickedTo(coords); setPickMode(null); }
+            }}
+            pickedFrom={pickedFrom}
+            pickedTo={pickedTo}
+            onActiveChange={setMapActiveId}
+            adminPanel={isAdmin && side ? (
+              <AdminPanel
+                entries={utility}
+                mapId={mapId}
+                side={side}
+                pickMode={pickMode}
+                pickedFrom={pickedFrom}
+                pickedTo={pickedTo}
+                onSetPickMode={setPickMode}
+                onInitCoords={handleInitCoords}
+                onSaved={handleSaved}
+                onTriggerMap={setMapFocusId}
+                activeEntryId={mapActiveId}
+              />
+            ) : undefined}
           />
         )}
       </div>

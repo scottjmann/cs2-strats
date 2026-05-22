@@ -9,6 +9,13 @@ interface Props {
   overviewImage: string;
   autoTriggerEntryId?: string | null;
   onAutoTriggered?: () => void;
+  // Admin
+  pickMode?: 'from' | 'to' | null;
+  onCoordPicked?: (coords: { x: number; y: number }) => void;
+  pickedFrom?: { x: number; y: number } | null;
+  pickedTo?:   { x: number; y: number } | null;
+  adminPanel?: React.ReactNode;
+  onActiveChange?: (id: string | null) => void;
 }
 
 // ── Timing constants ──────────────────────────────────────────────────────────
@@ -19,6 +26,11 @@ const BLOOM_SIT    = 3000;
 const BLOOM_FADE   = 600;
 const PAUSE  = BOUNCE_TOTAL + BLOOM_EXPAND + BLOOM_SIT + BLOOM_FADE;
 const CYCLE  = TRAVEL + PAUSE;
+
+const FLASH_EXPAND = 150;
+const FLASH_SIT    = 80;
+const FLASH_FADE   = 350;
+const FLASH_TOTAL  = FLASH_EXPAND + FLASH_SIT + FLASH_FADE;
 
 // ── Bloom rings ───────────────────────────────────────────────────────────────
 const BLOOM_RINGS = [
@@ -44,6 +56,44 @@ function getRingStyle(landElapsed: number, stagger: number) {
   return null;
 }
 
+function getFlashStyle(landElapsed: number) {
+  if (landElapsed < FLASH_EXPAND) {
+    const p = landElapsed / FLASH_EXPAND;
+    return { scale: p, opacity: p };
+  }
+  const afterExpand = landElapsed - FLASH_EXPAND;
+  if (afterExpand < FLASH_SIT) return { scale: 1, opacity: 1 };
+  const afterSit = afterExpand - FLASH_SIT;
+  if (afterSit < FLASH_FADE) return { scale: 1, opacity: 1 - afterSit / FLASH_FADE };
+  return null;
+}
+
+// ── Fire rings ────────────────────────────────────────────────────────────────
+const FIRE_RINGS = [
+  { size: 58, stagger:   0, dx:   0, dy:   0, core: true  },
+  { size: 64, stagger:  55, dx:   3, dy:   2, core: false },
+  { size: 47, stagger: 110, dx: -11, dy:   6, core: false },
+  { size: 53, stagger: 200, dx:   9, dy:  -5, core: false },
+  { size: 40, stagger: 310, dx:  -6, dy:  -8, core: false },
+  { size: 35, stagger: 180, dx:   7, dy:   9, core: false },
+];
+
+// Same shape as getRingStyle but fire starts immediately on landing (no BOUNCE_TOTAL offset)
+function getFireStyle(landElapsed: number, stagger: number) {
+  const MAX_OPACITY = 0.93;
+  if (landElapsed < stagger) return null;
+  const e = landElapsed - stagger;
+  if (e < BLOOM_EXPAND) {
+    const p = e / BLOOM_EXPAND;
+    return { scale: 1 - Math.pow(1 - p, 2), opacity: p * MAX_OPACITY };
+  }
+  const afterExpand = e - BLOOM_EXPAND;
+  if (afterExpand < BLOOM_SIT) return { scale: 1, opacity: MAX_OPACITY };
+  const afterSit = afterExpand - BLOOM_SIT;
+  if (afterSit < BLOOM_FADE) return { scale: 1, opacity: MAX_OPACITY * (1 - afterSit / BLOOM_FADE) };
+  return null;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function computeArc(entry: UtilityEntry) {
   const f = entry.fromCoords!;
@@ -64,16 +114,28 @@ function quadBezier(t: number, p0: number, p1: number, p2: number) {
   return (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
 }
 
+// ── Pin colours ───────────────────────────────────────────────────────────────
+const PIN_COLORS: Record<string, { color: string; glowColor: string; spotColor: string }> = {
+  smoke:   { color: '#f59e0b', glowColor: 'rgba(245,158,11,0.65)',  spotColor: 'rgba(255,228,140,0.9)' },
+  flash:   { color: '#7dd3fc', glowColor: 'rgba(125,211,252,0.65)', spotColor: 'rgba(224,242,254,0.9)' },
+  molotov: { color: '#f97316', glowColor: 'rgba(249,115,22,0.65)',  spotColor: 'rgba(254,215,170,0.9)' },
+  he:      { color: '#22c55e', glowColor: 'rgba(34,197,94,0.65)',   spotColor: 'rgba(187,247,208,0.9)' },
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  smoke: 'Smokes', flash: 'Flashes', molotov: 'Molotovs', he: 'HE',
+};
+
 // ── PinDot ────────────────────────────────────────────────────────────────────
-function PinDot({ x, y, type, dimmed, highlighted, onMouseEnter, onMouseLeave, onClick }: {
-  x: number; y: number; type: 'from' | 'to';
+function PinDot({ x, y, type, utilityType = 'smoke', dimmed, highlighted, onMouseEnter, onMouseLeave, onClick }: {
+  x: number; y: number; type: 'from' | 'to'; utilityType?: string;
   dimmed: boolean; highlighted: boolean;
   onMouseEnter: () => void; onMouseLeave: () => void; onClick: () => void;
 }) {
-  const isFrom    = type === 'from';
-  const color     = isFrom ? '#f59e0b' : '#ef4444';
-  const glowColor = isFrom ? 'rgba(245,158,11,0.65)' : 'rgba(239,68,68,0.55)';
-  const spotColor = isFrom ? 'rgba(255,228,140,0.9)' : 'rgba(255,180,180,0.9)';
+  const isFrom = type === 'from';
+  const { color, glowColor, spotColor } = isFrom
+    ? (PIN_COLORS[utilityType] ?? PIN_COLORS.smoke)
+    : { color: '#d4d8e0', glowColor: 'rgba(212,216,224,0.5)', spotColor: 'rgba(255,255,255,0.95)' };
 
   // "to" pins are small and hidden until the entry is active
   if (!isFrom) {
@@ -129,22 +191,32 @@ interface IconState {
   x: number; y: number; rotation: number; bobbleY: number; landElapsed: number;
 }
 
-export default function MapView({ entries, overviewImage, autoTriggerEntryId, onAutoTriggered }: Props) {
-  const [hoveredId, setHoveredId]   = useState<string | null>(null);
-  const [activeId, setActiveId]     = useState<string | null>(null);
-  const [showGrid, setShowGrid]     = useState(true);
-  const [iconState, setIconState]   = useState<IconState | null>(null);
+export default function MapView({ entries, overviewImage, autoTriggerEntryId, onAutoTriggered, pickMode, onCoordPicked, pickedFrom, pickedTo, adminPanel, onActiveChange }: Props) {
+  const [hoveredId, setHoveredId]     = useState<string | null>(null);
+  const [activeId, setActiveId]       = useState<string | null>(null);
+  const [iconState, setIconState]     = useState<IconState | null>(null);
   const [animTrigger, setAnimTrigger] = useState<{ id: string; nonce: number } | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(() => new Set(['smoke', 'flash', 'molotov', 'he']));
 
   // Refs so rAF closure can read current values without stale captures
-  const hoveredIdRef  = useRef<string | null>(null);
-  const activeIdRef   = useRef<string | null>(null);
-  const animRef       = useRef<number | null>(null);
-  const bloomTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoveredIdRef      = useRef<string | null>(null);
+  const activeIdRef       = useRef<string | null>(null);
+  const animRef           = useRef<number | null>(null);
+  const onActiveChangeRef = useRef(onActiveChange);
+  useEffect(() => { onActiveChangeRef.current = onActiveChange; }, [onActiveChange]);
 
-  const pinEntries  = entries.filter(e => e.fromCoords && e.toCoords && e.videoUrl);
-  const activeEntry = pinEntries.find(e => e.id === activeId) ?? null;
-  const videoId     = activeEntry ? getVideoId(activeEntry.videoUrl) : null;
+  const pinEntries      = entries.filter(e => e.fromCoords && e.toCoords && e.videoUrl);
+  const availableTypes  = [...new Set(pinEntries.map(e => e.type))];
+  const filteredPinEntries = pinEntries.filter(e => activeFilters.has(e.type));
+  const activeEntry     = filteredPinEntries.find(e => e.id === activeId) ?? null;
+  const videoId         = activeEntry ? getVideoId(activeEntry.videoUrl) : null;
+  const animEntry       = pinEntries.find(e => e.id === animTrigger?.id) ?? null;
+  const grenadeIcon    = animEntry?.type === 'flash'   ? '/images/flashbang.webp'
+                       : animEntry?.type === 'molotov' ? '/images/molotov.webp'
+                       : '/images/smoke-grenade-icon.webp';
+  const flashBloomStyle = (iconState && animEntry?.type === 'flash' && iconState.landElapsed >= 0)
+    ? getFlashStyle(iconState.landElapsed)
+    : null;
 
   // Keep refs in sync
   useEffect(() => { hoveredIdRef.current = hoveredId; }, [hoveredId]);
@@ -162,11 +234,15 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
     const { f, t, cx, cy } = computeArc(entry);
     let cycleStart: number | null = null;
 
+    const isFlash       = entry.type === 'flash';
+    const isInstantLand = entry.type === 'flash' || entry.type === 'molotov';
+    const effectiveCycle = isFlash ? (TRAVEL + FLASH_TOTAL) : CYCLE;
+
     function animate(timestamp: number) {
       if (cycleStart === null) cycleStart = timestamp;
       const elapsed = timestamp - cycleStart;
 
-      if (elapsed >= CYCLE) {
+      if (elapsed >= effectiveCycle) {
         const shouldLoop = hoveredIdRef.current === id || activeIdRef.current === id;
         if (shouldLoop) {
           cycleStart = timestamp;
@@ -188,26 +264,30 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
         });
       } else {
         const landElapsed = elapsed - TRAVEL;
-        const bounces = [
-          { height: 10,  duration: 560 },
-          { height: 2.5, duration: 380 },
-          { height: 0.8, duration: 220 },
-        ];
-        let remaining = landElapsed, bobbleY = 0;
-        for (const b of bounces) {
-          if (remaining < b.duration) {
-            const p = remaining / b.duration;
-            bobbleY = -4 * b.height * p * (1 - p);
-            break;
+        if (isInstantLand) {
+          setIconState({ x: t.x, y: t.y, rotation: 720, bobbleY: 0, landElapsed });
+        } else {
+          const bounces = [
+            { height: 10,  duration: 560 },
+            { height: 2.5, duration: 380 },
+            { height: 0.8, duration: 220 },
+          ];
+          let remaining = landElapsed, bobbleY = 0;
+          for (const b of bounces) {
+            if (remaining < b.duration) {
+              const p = remaining / b.duration;
+              bobbleY = -4 * b.height * p * (1 - p);
+              break;
+            }
+            remaining -= b.duration;
           }
-          remaining -= b.duration;
+          setIconState({
+            x: t.x, y: t.y,
+            rotation: 720 + (landElapsed / PAUSE) * 90,
+            bobbleY,
+            landElapsed,
+          });
         }
-        setIconState({
-          x: t.x, y: t.y,
-          rotation: 720 + (landElapsed / PAUSE) * 90,
-          bobbleY,
-          landElapsed,
-        });
       }
       animRef.current = requestAnimationFrame(animate);
     }
@@ -216,21 +296,14 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, [animTrigger, entries]);
 
-  // Auto-trigger from list view "View on Map" button
+  // Auto-trigger from list view "View on Map" button or admin row click
   useEffect(() => {
     if (!autoTriggerEntryId) return;
-    if (bloomTimerRef.current) clearTimeout(bloomTimerRef.current);
-    // Clear any previous active selection so video panel starts hidden
-    setActiveId(null);
-    activeIdRef.current = null;
+    setActiveId(autoTriggerEntryId);
+    activeIdRef.current = autoTriggerEntryId;
+    onActiveChangeRef.current?.(autoTriggerEntryId);
     setAnimTrigger(prev => ({ id: autoTriggerEntryId, nonce: prev?.id === autoTriggerEntryId ? (prev.nonce + 1) : 0 }));
-    // Activate video panel exactly when bloom starts
-    bloomTimerRef.current = setTimeout(() => {
-      setActiveId(autoTriggerEntryId);
-      activeIdRef.current = autoTriggerEntryId;
-    }, TRAVEL + BOUNCE_TOTAL);
     onAutoTriggered?.();
-    return () => { if (bloomTimerRef.current) clearTimeout(bloomTimerRef.current); };
   }, [autoTriggerEntryId]);
 
   function triggerAnim(id: string) {
@@ -238,7 +311,6 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
   }
 
   function handleReset() {
-    if (bloomTimerRef.current) { clearTimeout(bloomTimerRef.current); bloomTimerRef.current = null; }
     if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; }
     setActiveId(null);
     activeIdRef.current = null;
@@ -246,6 +318,18 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
     hoveredIdRef.current = null;
     setAnimTrigger(null);
     setIconState(null);
+    onActiveChange?.(null);
+  }
+
+  function toggleFilter(type: string) {
+    const isRemoving = activeFilters.has(type) && activeFilters.size > 1;
+    if (isRemoving && (activeEntry?.type === type || animEntry?.type === type)) handleReset();
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) { if (next.size > 1) next.delete(type); }
+      else next.add(type);
+      return next;
+    });
   }
 
   function handleMouseEnter(id: string) {
@@ -260,60 +344,60 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
   }
 
   function handleClick(id: string) {
-    if (bloomTimerRef.current) { clearTimeout(bloomTimerRef.current); bloomTimerRef.current = null; }
     const next = activeId === id ? null : id;
     setActiveId(next);
     activeIdRef.current = next;
+    onActiveChange?.(next);
     if (next) triggerAnim(id);
   }
 
   return (
-    <div className="flex gap-4 items-start justify-center h-full">
+    <div className="flex gap-3 items-start h-full">
+
+      {/* ── Filter panel ── */}
+      <div className="flex-shrink-0 flex flex-col justify-center gap-1.5 h-full">
+        {availableTypes.map(type => {
+          const { color } = PIN_COLORS[type] ?? PIN_COLORS.smoke;
+          const isActive = activeFilters.has(type);
+          return (
+            <button
+              key={type}
+              onClick={() => toggleFilter(type)}
+              className="px-2.5 py-1.5 rounded-sm font-heading text-[10px] uppercase tracking-wider transition-all"
+              style={{
+                border: `1px solid ${color}${isActive ? '80' : '25'}`,
+                background: isActive ? `${color}18` : 'transparent',
+                color: isActive ? color : `${color}40`,
+              }}
+            >
+              {TYPE_LABELS[type] ?? type}
+            </button>
+          );
+        })}
+      </div>
 
       {/* ── Map column — height-driven so no scrolling ── */}
       <div className="relative rounded-sm overflow-hidden select-none flex-shrink-0"
-        style={{ height: '100%' }}
+        style={{ height: '100%', cursor: pickMode ? 'crosshair' : 'default' }}
         onClick={(e) => {
+          if (pickMode && onCoordPicked) {
+            const img = (e.currentTarget as HTMLElement).querySelector('img')!;
+            const rect = img.getBoundingClientRect();
+            const x = Math.round(((e.clientX - rect.left) / rect.width)  * 1000) / 10;
+            const y = Math.round(((e.clientY - rect.top)  / rect.height) * 1000) / 10;
+            onCoordPicked({ x, y });
+            return;
+          }
           const el = e.target as HTMLElement;
           if (!el.closest('[data-pin]')) handleReset();
         }}
       >
         <img src={overviewImage} alt="Map overview" className="h-full w-auto block" draggable={false} />
 
-        {/* Grid toggle */}
-        <button
-          onClick={() => setShowGrid(g => !g)}
-          className={[
-            'absolute top-2 right-2 z-30 px-2 py-1 rounded-sm border font-heading text-[10px] uppercase tracking-wider transition-colors',
-            showGrid ? 'bg-accent text-white border-accent' : 'bg-bg-surface/80 text-zinc-400 border-border-dim hover:text-accent hover:border-accent',
-          ].join(' ')}
-        >
-          Grid
-        </button>
-
-        {/* Grid overlay */}
-        {showGrid && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ zIndex: 25 }}>
-            {Array.from({ length: 11 }, (_, i) => i * 10).map(v => (
-              <g key={v}>
-                <line x1={v} y1={0} x2={v} y2={100} stroke="rgba(255,255,0,0.35)" strokeWidth="0.3" />
-                <line x1={0} y1={v} x2={100} y2={v} stroke="rgba(255,255,0,0.35)" strokeWidth="0.3" />
-              </g>
-            ))}
-          </svg>
-        )}
-        {showGrid && Array.from({ length: 11 }, (_, i) => i * 10).map(v => (
-          <div key={`lbl-${v}`} className="absolute pointer-events-none" style={{ zIndex: 26 }}>
-            <span className="absolute text-[9px] font-mono text-yellow-300 leading-none"
-              style={{ left: `${v}%`, top: '2px', transform: 'translateX(-50%)' }}>{v}</span>
-            <span className="absolute text-[9px] font-mono text-yellow-300 leading-none"
-              style={{ top: `${v}%`, left: '2px', transform: 'translateY(-50%)' }}>{v}</span>
-          </div>
-        ))}
 
         {/* Arc SVG */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {pinEntries.map(entry => {
+          {filteredPinEntries.map(entry => {
             const show = hoveredId === entry.id || activeId === entry.id || animTrigger?.id === entry.id;
             if (!show) return null;
             const { f, t, cx, cy } = computeArc(entry);
@@ -323,7 +407,7 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
         </svg>
 
         {/* Smoke bloom */}
-        {iconState && iconState.landElapsed >= 0 && BLOOM_RINGS.map((r, i) => {
+        {iconState && animEntry?.type !== 'flash' && animEntry?.type !== 'molotov' && iconState.landElapsed >= 0 && BLOOM_RINGS.map((r, i) => {
           const rs = getRingStyle(iconState.landElapsed, r.stagger);
           if (!rs) return null;
           return (
@@ -338,9 +422,44 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
           );
         })}
 
+        {/* Flash bloom */}
+        {flashBloomStyle && iconState && (
+          <div className="absolute pointer-events-none rounded-full" style={{
+            left: `${iconState.x}%`, top: `${iconState.y}%`,
+            width: '96px', height: '96px',
+            transform: `translate(-50%, -50%) scale(${flashBloomStyle.scale})`,
+            opacity: flashBloomStyle.opacity,
+            background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(220,240,255,1) 20%, rgba(180,220,255,0.7) 50%, transparent 78%)',
+            zIndex: 20,
+          }} />
+        )}
+
+        {/* Fire bloom */}
+        {iconState && animEntry?.type === 'molotov' && iconState.landElapsed >= 0 && (() => {
+          const flicker = Math.sin(iconState.landElapsed * 0.025) * 0.07 + Math.sin(iconState.landElapsed * 0.041) * 0.04;
+          return FIRE_RINGS.map((r, i) => {
+            const fs = getFireStyle(iconState.landElapsed, r.stagger);
+            if (!fs) return null;
+            const gradient = r.core
+              ? 'radial-gradient(circle, rgba(255,235,80,0.97) 0%, rgba(255,130,0,0.90) 28%, rgba(200,40,0,0.70) 54%, rgba(80,5,0,0.25) 76%, transparent 92%)'
+              : 'radial-gradient(circle, rgba(255,100,0,0.90) 0%, rgba(185,35,0,0.74) 38%, rgba(110,12,0,0.38) 62%, transparent 86%)';
+            return (
+              <div key={i} className="absolute pointer-events-none rounded-full" style={{
+                left: `${iconState.x}%`, top: `${iconState.y}%`,
+                width: `${r.size}px`, height: `${r.size}px`,
+                transform: `translate(calc(-50% + ${r.dx}px), calc(-50% + ${r.dy}px)) scale(${fs.scale})`,
+                opacity: Math.min(1, Math.max(0, fs.opacity + flicker)),
+                background: gradient,
+                mixBlendMode: 'screen',
+                zIndex: 20,
+              }} />
+            );
+          });
+        })()}
+
         {/* Grenade icon */}
-        {iconState && iconState.landElapsed < BOUNCE_TOTAL && (
-          <img src="/images/smoke-grenade-icon.webp" alt="" className="absolute pointer-events-none"
+        {iconState && ((animEntry?.type === 'flash' || animEntry?.type === 'molotov') ? iconState.landElapsed < 0 : iconState.landElapsed < BOUNCE_TOTAL) && (
+          <img src={grenadeIcon} alt="" className="absolute pointer-events-none"
             style={{
               left: `${iconState.x}%`, top: `${iconState.y}%`,
               transform: `translate(-50%, calc(-50% + ${iconState.bobbleY}px)) rotate(${iconState.rotation}deg)`,
@@ -350,7 +469,7 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
         )}
 
         {/* Pins */}
-        {pinEntries.map(entry => {
+        {filteredPinEntries.map(entry => {
           const animId = animTrigger?.id;
           const isDimmed = (hoveredId !== null && hoveredId !== entry.id) ||
             (animId != null && hoveredId === null && iconState !== null && animId !== entry.id);
@@ -363,8 +482,8 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
           };
           return (
             <div key={entry.id}>
-              <PinDot x={entry.fromCoords!.x} y={entry.fromCoords!.y} type="from" {...props} />
-              <PinDot x={entry.toCoords!.x}   y={entry.toCoords!.y}   type="to"   {...props} />
+              <PinDot x={entry.fromCoords!.x} y={entry.fromCoords!.y} type="from" utilityType={entry.type} {...props} />
+              <PinDot x={entry.toCoords!.x}   y={entry.toCoords!.y}   type="to"   utilityType={entry.type} {...props} />
               <div
                 className="absolute cursor-pointer"
                 style={{
@@ -387,9 +506,23 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
           );
         })}
 
-        {pinEntries.length === 0 && (
+        {filteredPinEntries.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-zinc-600 text-sm font-body uppercase tracking-widest">No map pins for this side yet</p>
+          </div>
+        )}
+
+        {/* Admin ghost pins for coord picker */}
+        {pickedFrom && (
+          <div className="absolute pointer-events-none z-30" style={{ left: `${pickedFrom.x}%`, top: `${pickedFrom.y}%`, transform: 'translate(-50%,-50%)' }}>
+            <div className="w-4 h-4 rounded-full border-2 border-accent bg-accent/30" />
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-[9px] font-heading text-accent whitespace-nowrap">FROM</span>
+          </div>
+        )}
+        {pickedTo && (
+          <div className="absolute pointer-events-none z-30" style={{ left: `${pickedTo.x}%`, top: `${pickedTo.y}%`, transform: 'translate(-50%,-50%)' }}>
+            <div className="w-3 h-3 rounded-full border-2 border-zinc-300 bg-zinc-300/30" />
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-[9px] font-heading text-zinc-300 whitespace-nowrap">TO</span>
           </div>
         )}
       </div>
@@ -407,7 +540,7 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
                   {activeEntry.from} → {activeEntry.to}
                 </p>
               </div>
-              <button onClick={() => { setActiveId(null); activeIdRef.current = null; }}
+              <button onClick={() => { setActiveId(null); activeIdRef.current = null; onActiveChange?.(null); }}
                 className="text-zinc-600 hover:text-zinc-300 transition-colors mt-0.5 flex-shrink-0 text-xs">
                 ✕
               </button>
@@ -428,6 +561,9 @@ export default function MapView({ entries, overviewImage, autoTriggerEntryId, on
           </div>
         )}
       </div>
+
+      {/* ── Admin panel (optional, sits to right of video) ── */}
+      {adminPanel}
 
     </div>
   );
